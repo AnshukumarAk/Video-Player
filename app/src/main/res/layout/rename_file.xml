@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:orientation="vertical"
+        android:layout_marginHorizontal="6dp"
+        android:layout_height="wrap_content">
+
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cv_monitoring"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginHorizontal="5dp"
+            android:layout_marginVertical="5dp"
+            android:layout_weight="1"
+            android:backgroundTint="#D3EFF8"
+            android:clipToOutline="false"
+            app:cardElevation="5dp"
+            android:foreground="?android:attr/selectableItemBackground"
+            android:minHeight="200dp"
+            app:cardCornerRadius="10dp"
+            app:cardMaxElevation="@android:dimen/app_icon_size">
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="4dp"
+                android:orientation="vertical">
+
+
+                <EditText
+                    android:id="@+id/EditTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/edit_text_background"
+                    android:padding="10dp"
+                    android:hint="@string/enter_title"
+                    android:textSize="16sp"
+                    android:textColorHint="@color/black"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp"
+                    />
+
+
+
+
+<!--                <EditText-->
+<!--                    android:id="@+id/EditContent"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="120dp"-->
+<!--                    android:textSize="16sp"-->
+<!--                    android:textColorHint="@color/black"-->
+<!--                    android:background="@drawable/edit_text_background"-->
+<!--                    android:padding="10dp"-->
+<!--                    android:inputType="text"-->
+<!--                    android:elevation="5.00dp"-->
+<!--                    android:layout_marginTop="4dp"-->
+<!--                    android:gravity="start"-->
+<!--                    android:textStyle="bold"-->
+<!--                    android:paddingLeft="4dp"-->
+<!--                    android:hint="@string/type_something"/>-->
+
+                <RelativeLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp">
+
+                    <Button
+                        android:id="@+id/Cancel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/cancel"
+                        android:backgroundTint="@color/color_red_google"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginRight="4dp"
+                        android:textAllCaps="false"/>
+
+                    <Button
+                        android:id="@+id/Rename"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginTop="4dp"
+                        android:layout_marginEnd="20dp"
+                        android:layout_marginRight="6dp"
+                        android:text="@string/ok"
+                        android:textAllCaps="false" />
+
+                </RelativeLayout>
+
+
+
+
+            </LinearLayout>
+
+
+
+
+        </com.google.android.material.card.MaterialCardView>
+
+
+    </LinearLayout>
+
+</RelativeLayout>

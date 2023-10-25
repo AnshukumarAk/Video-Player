@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="long_text">long_text</string>
+    <string name="rename">Rename</string>
+    <string name="enter_title">Video Name.......</string>
+    <string name="type_something">Type Something....</string>
+    <string name="ok">Rename</string>
+    <string name="cancel">Cancel</string>
+    <string name="_00_00_00">00:00:00</string>
+    <string name="lock">Lock</string>
+    <string name="audio_sub">Audio &amp; Subtitle </string>
+</resources>
