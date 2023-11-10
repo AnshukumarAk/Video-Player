@@ -28,7 +28,7 @@
             <ImageView
                 android:layout_width="70dp"
                 android:layout_height="70dp"
-                android:src="@drawable/folder_image_new"/>
+                android:src="@drawable/folder_image"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
