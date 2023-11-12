@@ -44,7 +44,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewhold
         String folderNames=folderName.get(position).substring(index+1);
 
         holder.tv_folder_name.setText(folderNames);
-        holder.tv_folder_count.setText(String.valueOf(countVideos(folderName.get(position))));
+        holder.tv_folder_count.setText(String.valueOf(countVideos(folderName.get(position)))+" videos");
 
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -55,6 +55,9 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewhold
                 context.startActivity(intent);
             }
         });
+
+
+
 
     }
 

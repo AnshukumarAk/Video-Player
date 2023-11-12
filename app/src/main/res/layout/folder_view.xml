@@ -7,22 +7,12 @@
 
 
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="6dp"
-        app:cardElevation="4dp"
-        android:layout_marginTop="4dp"
-        android:layout_marginHorizontal="6dp"
-        android:layout_marginBottom="10dp"
-        >
-
-
         <LinearLayout
             android:layout_width="match_parent"
+            android:layout_marginHorizontal="10dp"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="6dp"
+            android:padding="4dp"
             >
 
             <ImageView
@@ -43,7 +33,6 @@
                     android:textStyle="bold"
                     android:textSize="18sp"
                     android:text="Folder Name"
-                    android:gravity="center"
                     />
 
 
@@ -52,9 +41,7 @@
                     android:id="@+id/tv_folder_count"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textStyle="bold"
                     android:text="10"
-                    android:gravity="center"
                     />
 
 
@@ -63,7 +50,6 @@
 
         </LinearLayout>
 
-    </androidx.cardview.widget.CardView>
 
 
 
