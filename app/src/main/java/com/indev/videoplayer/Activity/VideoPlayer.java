@@ -3,25 +3,36 @@ package com.indev.videoplayer.Activity;
 import static com.indev.videoplayer.Adapter.VideoAdapter.videoFolder;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.GestureDetectorCompat;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.graphics.Point;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.DisplayMetrics;
+import android.view.ContextMenu;
 import android.view.Display;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
+import android.view.Surface;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.RelativeLayout;
@@ -31,6 +42,8 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.indev.videoplayer.R;
+
+import java.util.ArrayList;
 
 public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListener,
         ScaleGestureDetector.OnScaleGestureListener {
@@ -42,7 +55,6 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
     boolean isOpen = false;
     TextView videoView_title;
     ImageButton videoView_go_back, videoView_play_pause_btn;
-    LinearLayout videoView_rotation;
     private int currentRotation = 0;
     private SeekBar seekBar;
     private Handler handler;
@@ -85,7 +97,21 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
     //// For Plus 10minute and minus 10 minute video
     ImageButton videoView_forward,videoView_rewind;
     LinearLayout videoView_lock_screen;
+    SeekBar videoView_brightness;
     boolean isLockScreen = false;
+    String path="";
+
+    private boolean isFullScreen = false;
+    private int rotationAngle = 90;
+
+    LinearLayout lockControls, unlockControls, rotate, audioTrack,videoView_one_layout;
+    TextView title, endTime, lockTextOne, lockTextTwo;
+
+    ImageView img_lock,img_audio_and_subtitle,img_rotate_screen;
+    TextView tv_rotate_screen,tv_audio_and_subtitle,tv_lock;
+
+    Context context=this;
+
     @Override
     public boolean onTouch(View v, MotionEvent event) {
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
@@ -175,18 +201,19 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_player);
         getSupportActionBar().hide();
+
         AllIniClizeID();
 
         position = getIntent().getIntExtra("p", -1);
 
-        String path = videoFolder.get(position).getPath();
+         path = videoFolder.get(position).getPath();
         String video_name = videoFolder.get(position).getTitle();
 
         videoView_title.setText(video_name);
 
         if (path != null) {
             video_view.setVideoPath(path);
-            videoView_endtime.setText(videoFolder.get(position).getDuration());
+//            videoView_endtime.setText(videoFolder.get(position).getDuration());
             video_view.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
@@ -195,7 +222,12 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
                     seekBar.setMax(duration);
                     hideDefaultControls();
                     isOpen = false;
-
+                    audioTrack.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            checkMultiAudioTrack(mp);
+                        }
+                    });
                 }
             });
 
@@ -206,7 +238,9 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         video_view.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                onBackPressed();
+
+               playNextVideo();
+
             }
         });
 
@@ -225,7 +259,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         });
 
         GoBackClick();
-        RotateScreen();
+//        RotateScreen();
         SetSeekBarValue();
         StartSeekBar();
         TapToPlayPauseVideo();
@@ -246,10 +280,75 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
 
         SetOnClickPlusMinusDuretionButton();
 
-        LockScreen();
+
+        SetDisplayBrightness();
+        setHandler();
+
+        lockControls.setOnClickListener(this::onClick);
+        five.setOnClickListener(this::onClick);
+        unlockControls.setOnClickListener(this::onClick);
+        rotate.setOnClickListener(this::onClick);
+
     }
 
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.videoView_rotation:
+                int orientation = getResources().getConfiguration().orientation;
+                if (orientation == Configuration.ORIENTATION_PORTRAIT){
+                    //set in landscape
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+                    tv_lock.setTextColor(Color.WHITE);
+                    tv_audio_and_subtitle.setTextColor(Color.WHITE);
+                    tv_rotate_screen.setTextColor(Color.WHITE);
+                    videoView_one_layout.setBackgroundColor(Color.WHITE);
 
+                    img_lock.setImageDrawable(getResources().getDrawable(R.drawable.lock_white));
+                    img_audio_and_subtitle.setImageDrawable(getResources().getDrawable(R.drawable.audio_and_subtitle_white));
+                    img_rotate_screen.setImageDrawable(getResources().getDrawable(R.drawable.rotate_white));
+
+
+                }else if (orientation == Configuration.ORIENTATION_LANDSCAPE){
+                    //set in portrait
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+                    tv_lock.setTextColor(Color.BLACK);
+                    tv_audio_and_subtitle.setTextColor(Color.BLACK);
+                    tv_rotate_screen.setTextColor(Color.BLACK);
+                    videoView_one_layout.setBackgroundColor(Color.WHITE);
+
+                    img_lock.setImageDrawable(getResources().getDrawable(R.drawable.netflix_unlock));
+                    img_audio_and_subtitle.setImageDrawable(getResources().getDrawable(R.drawable.netflix_audio_subtitles));
+                    img_rotate_screen.setImageDrawable(getResources().getDrawable(R.drawable.ic_rotation));
+
+
+                }
+                break;
+
+            case R.id.videoView_lock_screen:
+                hideDefaultControls();
+                five.setVisibility(View.VISIBLE);
+                break;
+
+            case R.id.video_five_layout:
+                if (isOpen){
+                    unlockControls.setVisibility(View.INVISIBLE);
+                    lockTextOne.setVisibility(View.INVISIBLE);
+                    lockTextTwo.setVisibility(View.INVISIBLE);
+                    isOpen = false;
+                }else {
+                    unlockControls.setVisibility(View.VISIBLE);
+                    lockTextOne.setVisibility(View.VISIBLE);
+                    lockTextTwo.setVisibility(View.VISIBLE);
+                    isOpen = true;
+                }
+                break;
+
+            case R.id.video_five_child_layout:
+                five.setVisibility(View.GONE);
+                ShowDefaultControls();
+                break;
+        }
+    }
 
     private void StartSeekBar() {
         // SeekBar listener to seek the video
@@ -258,6 +357,9 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     video_view.seekTo(progress);
+                    video_view.start();
+                    int currentPosition = video_view.getCurrentPosition();
+                    videoView_endtime.setText("" + convertIntoTime(video_view.getDuration() - currentPosition));
                 }
             }
 
@@ -290,15 +392,6 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         handler.sendEmptyMessage(0);
     }
 
-    private void RotateScreen() {
-        videoView_rotation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                currentRotation += 90;
-                video_view.setRotation(currentRotation);
-            }
-        });
-    }
 
     private void GoBackClick() {
         videoView_go_back.setOnClickListener(new View.OnClickListener() {
@@ -307,6 +400,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
                 onBackPressed();
             }
         });
+
     }
 
 
@@ -320,7 +414,6 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         zoomLayout = findViewById(R.id.zoom_layout);
         videoView_title = findViewById(R.id.videoView_title);
         videoView_go_back = findViewById(R.id.videoView_go_back);
-        videoView_rotation = findViewById(R.id.videoView_rotation);
 
         seekBar = findViewById(R.id.videoView_seekbar);
         videoView_endtime = findViewById(R.id.videoView_endtime);
@@ -328,7 +421,27 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         mediaController = new MediaController(this);
         videoView_rewind=findViewById(R.id.videoView_rewind);
         videoView_forward=findViewById(R.id.videoView_forward);
-        videoView_lock_screen=findViewById(R.id.videoView_lock_screen);
+        videoView_brightness=findViewById(R.id.videoView_brightness);
+
+        lockControls = findViewById(R.id.videoView_lock_screen);
+        five = findViewById(R.id.video_five_layout);
+        unlockControls = findViewById(R.id.video_five_child_layout);
+        lockTextOne = findViewById(R.id.videoView_lock_text);
+        lockTextTwo = findViewById(R.id.videoView_lock_text_two);
+        rotate = findViewById(R.id.videoView_rotation);
+        audioTrack = findViewById(R.id.videoView_track);
+
+
+        ///// For Changes color after rotate screen
+
+        tv_lock=findViewById(R.id.tv_lock);
+        img_lock=findViewById(R.id.img_lock);
+        tv_audio_and_subtitle=findViewById(R.id.tv_audio_and_subtitle);
+        img_audio_and_subtitle=findViewById(R.id.img_audio_and_subtitle);
+        tv_rotate_screen=findViewById(R.id.tv_rotate_screen);
+        img_rotate_screen=findViewById(R.id.img_rotate_screen);
+        videoView_one_layout=findViewById(R.id.videoView_one_layout);
+
     }
 
     private void hideDefaultControls() {
@@ -477,37 +590,191 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
             }
         });
 
-//        videoView_forward.setOnLongClickListener(new View.OnLongClickListener() {
-//            @Override
-//            public boolean onLongClick(View view) {
-//
-//                int value = 0;
-//
-//                for (int i = 0; i < 10; i++) {
-//                    value += 10;
-//                    video_view.seekTo(video_view.getCurrentPosition() + value);
-//                }
-//                return true;
-//            }
-//        });
 
     }
 
-    private void LockScreen() {
-        videoView_lock_screen.setOnClickListener(new View.OnClickListener() {
+//    private void LockScreen() {
+//        videoView_lock_screen.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                if (isLockScreen) {
+//                    hideDefaultControls();
+//                    isLockScreen = false;
+//                } else {
+//                    ShowDefaultControls();
+//                    isLockScreen = true;
+//
+//                }
+//            }
+//        });
+//    }
+
+    private void playNextVideo() {
+        // Check if there is another video to play
+        if (position < path.length() - 1) {
+            position++;
+            playVideo(position);
+        } else {
+            // All videos in the playlist are played
+            // You may choose to loop or perform any other action here
+        }
+    }
+
+    private void playVideo(int index) {
+        if (index < path.length()) {
+            Uri videoUri = Uri.parse(videoFolder.get(index).getPath());
+            video_view.setVideoURI(videoUri);
+
+            video_view.start();
+        }
+    }
+
+    private void SetDisplayBrightness() {
+
+        videoView_brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onClick(View view) {
-                if (isLockScreen) {
-                    hideDefaultControls();
-                    isLockScreen = false;
-                } else {
-                    ShowDefaultControls();
-                    isLockScreen = true;
-                }
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                // Update brightness when progress changes
+                updateBrightness(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // Not needed for brightness adjustment
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                // Not needed for brightness adjustment
             }
         });
     }
 
+    private void updateBrightness(int brightness) {
+        // Adjust the brightness of the screen
+        WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
+        layoutParams.screenBrightness = brightness / 255.0f; // Normalize to a float between 0.0 and 1.0
+        getWindow().setAttributes(layoutParams);
+    }
 
+    private String convertIntoTime(int ms){
+        String time;
+        int x, seconds, minutes, hours;
+        x = ms / 1000;
+        seconds = x % 60;
+        x /= 60;
+        minutes = x % 60;
+        x /= 60;
+        hours = x % 24;
+        if (hours != 0)
+            time = String.format("%02d", hours) + ":" + String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
+        else time = String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
+        return time;
+    }
+    private void setHandler(){
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (video_view.getDuration()>0){
+                    int currentPosition = video_view.getCurrentPosition();
+                    seekBar.setProgress(currentPosition);
+                    videoView_endtime.setText(""+convertIntoTime(video_view.getDuration()-currentPosition));
+                }
+                handler.postDelayed(this,0);
+            }
+        };
+        handler.postDelayed(runnable,500);
+    }
+
+    private void toggleFullScreen() {
+        if (isFullScreen) {
+            // Exit full screen
+            getSupportActionBar().show();
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            isFullScreen = false;
+        } else {
+            // Enter full screen
+            getSupportActionBar().hide();
+            getWindow().getDecorView().setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_FULLSCREEN |
+                            View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+                            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+                            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            );
+            isFullScreen = true;
+        }
+    }
+
+    private void rotateVideo(int angle) {
+        MediaPlayer mediaPlayer = new MediaPlayer();
+
+        // Set the video path again
+        String videoPath = "your_video_url_or_path_here";
+        try {
+            mediaPlayer.setDataSource(videoPath);
+            mediaPlayer.prepare();
+
+            // Rotate the video by setting a rotation matrix to the Surface
+            Surface surface = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                surface = new Surface(video_view.getSurfaceControl());
+            }
+            video_view.setRotation(angle);
+            mediaPlayer.setSurface(surface);
+
+            // Start video playback
+            mediaPlayer.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void checkMultiAudioTrack(MediaPlayer mediaPlayer) {
+        MediaPlayer.TrackInfo[] trackInfos = mediaPlayer.getTrackInfo();
+
+        ArrayList<Integer> audioTracksIndex = new ArrayList<>();
+
+        for (int i = 0; i < trackInfos.length; i++) {
+            if (trackInfos[i].getTrackType() == MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO) {
+                audioTracksIndex.add(i);
+            }
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(VideoPlayer.this);
+        builder.setTitle("Select Audio Track");
+
+        String[] values = new String[audioTracksIndex.size()];
+        for (int i = 0; i < audioTracksIndex.size(); i++) {
+            values[i] = "Track " + i;
+        }
+        /*
+         * SingleChoice means RadioGroup
+         * */
+        builder.setSingleChoiceItems(values, 0, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                mediaPlayer.selectTrack(which);
+                Toast.makeText(VideoPlayer.this, "Track " + which + " Selected", Toast.LENGTH_SHORT).show();
+            }
+        }).setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mediaPlayer.getSelectedTrack(which);
+                }
+                mediaPlayer.start();
+                Toast.makeText(VideoPlayer.this, "we are working on that :)", Toast.LENGTH_LONG).show();
+                dialog.dismiss();
+            }
+        }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.show();
+    }
 
 }

@@ -14,8 +14,7 @@
         <!-- Customize your theme here. -->
         <item name="android:editTextColor">@color/white</item>
         <item name="android:textColorHint">@color/light_white</item>
-        <item name="android:homeAsUpIndicator">@color/go_back</item>
-
+<!--        <item name="android:go_back">R/go_back</item>-->
 
     </style>
 

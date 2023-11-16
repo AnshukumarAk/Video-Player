@@ -33,6 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private ArrayList<VideoModel> videoList=new ArrayList<>();
     FolderAdapter folderAdapter;
     RecyclerView recyclerView;
+    private static final int TIME_INTERVAL = 2000;
+    private long mBackPressed;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,5 +103,14 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
         }
         return videoModelArrayList;
+    }
+    @Override
+    public void onBackPressed() {
+        if (mBackPressed + TIME_INTERVAL > System.currentTimeMillis()) {
+            super.onBackPressed();
+            return;
+        } else {
+            Toast.makeText(getBaseContext(), "Press Again For Exit!", Toast.LENGTH_SHORT).show(); }
+        mBackPressed = System.currentTimeMillis();
     }
 }

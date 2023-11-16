@@ -1,5 +1,7 @@
 package com.indev.videoplayer.Adapter;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -12,6 +14,7 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -223,6 +226,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
 
               }
 
+
+
     private void RenameFileName(int position, View v) {
         final Dialog dialog=new Dialog(context);
         dialog.setContentView(R.layout.rename_file);
@@ -282,12 +287,8 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
     }
 
     private void ShowVideoProperties(int position, View v){
-        android.app.Dialog update_pic_layout = new android.app.Dialog(context);
-        update_pic_layout.setContentView(R.layout.show_video_properties);
-        update_pic_layout.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        WindowManager.LayoutParams params = update_pic_layout.getWindow().getAttributes();
-        params.gravity = Gravity.CENTER | Gravity.CENTER_HORIZONTAL;
-        android.widget.ImageView Cancel = (ImageView) update_pic_layout.findViewById(R.id.iv_cancel);
+       BottomSheetDialog bottomSheetDialog=new BottomSheetDialog(context);
+        bottomSheetDialog.setContentView(R.layout.show_video_properties);
 
 
         String name=videoFolder.get(position).getTitle();
@@ -297,13 +298,11 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
         String resolution=videoFolder.get(position).getResolution();
 
 
-
-
-        android.widget.TextView title_name = (TextView) update_pic_layout.findViewById(R.id.name);
-        android.widget.TextView video_path = (TextView) update_pic_layout.findViewById(R.id.path);
-        android.widget.TextView video_size = (TextView) update_pic_layout.findViewById(R.id.size);
-        android.widget.TextView video_duration = (TextView) update_pic_layout.findViewById(R.id.duration);
-        android.widget.TextView video_resolution = (TextView) update_pic_layout.findViewById(R.id.resolution);
+        TextView title_name = bottomSheetDialog.findViewById(R.id.name);
+        TextView video_path = bottomSheetDialog.findViewById(R.id.path);
+        TextView video_size = bottomSheetDialog.findViewById(R.id.size);
+        TextView video_duration = bottomSheetDialog.findViewById(R.id.duration);
+        TextView video_resolution = bottomSheetDialog.findViewById(R.id.resolution);
 
 
         title_name.setText(name);
@@ -312,16 +311,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
         video_duration.setText(duration);
         video_resolution.setText(resolution+"p");
 
-        Cancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                update_pic_layout.dismiss();
-            }
-        });
-
-
-        update_pic_layout.show();
-        update_pic_layout.setCanceledOnTouchOutside(true);
+       bottomSheetDialog.show();
     }
 
 

@@ -8,16 +8,18 @@
     tools:context=".Activity.VideoFolder">
 
 
-    <androidx.appcompat.widget.Toolbar
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:menu="@menu/main_toolbar"
-        app:title="@string/app_name"
-        android:id="@+id/toolbar"
-        app:titleTextColor="@color/white">
+<!--    <androidx.appcompat.widget.Toolbar-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="?attr/actionBarSize"-->
+<!--        app:menu="@menu/main_toolbar"-->
+<!--        app:title="@string/app_name"-->
+<!--        android:id="@+id/toolbar"-->
+<!--        app:titleTextColor="@color/white">-->
 
 
-    </androidx.appcompat.widget.Toolbar>
+<!--    </androidx.appcompat.widget.Toolbar>-->
+
+
 
 
     <androidx.recyclerview.widget.RecyclerView

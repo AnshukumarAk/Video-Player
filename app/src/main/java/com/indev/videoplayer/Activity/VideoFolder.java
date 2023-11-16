@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -16,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.indev.videoplayer.Adapter.VideoAdapter;
@@ -25,7 +27,7 @@ import com.indev.videoplayer.R;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class VideoFolder extends AppCompatActivity implements SearchView.OnQueryTextListener {
+public class VideoFolder extends AppCompatActivity implements SearchView.OnQueryTextListener{
 
     private RecyclerView recyclerView;
     private String name;
@@ -34,6 +36,8 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
     Context context=this;
     String title_name="";
     Toolbar toolbar;
+    private Paint mClearPaint;
+    LinearLayout parentLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,16 +48,18 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
         title_name=getIntent().getStringExtra("titleName");
         AllIniclizeID();
 
-        getSupportActionBar().hide();
-//        setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setHomeAsUpIndicator(getResources().getDrawable(R.drawable.ic_baseline_back_24));
-        toolbar.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_700));
+//          getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+//        getSupportActionBar().hide();
+////        setSupportActionBar(toolbar);
+//        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+//        getSupportActionBar().setHomeAsUpIndicator(getResources().getDrawable(R.drawable.ic_baseline_back_24));
+//        toolbar.setBackgroundColor(ContextCompat.getColor(this, R.color.purple_700));
 
 
 
         if (!title_name.equals("")){
-            toolbar.setTitle(title_name+" videos");
+          setTitle(title_name+" videos");
         }
 
         LoadVideos();
@@ -62,7 +68,7 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
 
     private void AllIniclizeID() {
         recyclerView=findViewById(R.id.recycleview_video);
-        toolbar=findViewById(R.id.toolbar);
+//        toolbar=findViewById(R.id.toolbar);
     }
 
     private void LoadVideos() {
@@ -173,9 +179,9 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
         getMenuInflater().inflate(R.menu.main_toolbar, menu);
         MenuItem menuItem=menu.findItem(R.id.search);
         SearchView searchView=(SearchView) menuItem.getActionView();
-        ImageView ivClose=searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
-        ivClose.setColorFilter(ContextCompat.getColor(getApplicationContext(),R.color.white),
-                android.graphics.PorterDuff.Mode.SRC_IN);
+//        ImageView ivClose=searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
+//        ivClose.setColorFilter(ContextCompat.getColor(getApplicationContext(),R.color.white),
+//                android.graphics.PorterDuff.Mode.SRC_IN);
         searchView.setQueryHint("Search file name");
 
         searchView.setOnQueryTextListener(this);
@@ -198,7 +204,6 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
             }
         }
         videoAdapter.updateSearchList(searchList);
-
         return true;
     }
 }
