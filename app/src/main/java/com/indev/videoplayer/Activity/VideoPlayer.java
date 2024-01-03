@@ -111,6 +111,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
     TextView tv_rotate_screen,tv_audio_and_subtitle,tv_lock;
 
     Context context=this;
+    int videosize=0;
 
     @Override
     public boolean onTouch(View v, MotionEvent event) {
@@ -210,6 +211,8 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         String video_name = videoFolder.get(position).getTitle();
 
         videoView_title.setText(video_name);
+
+         videosize= videoFolder.size();
 
         if (path != null) {
             video_view.setVideoPath(path);
@@ -611,9 +614,14 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
 
     private void playNextVideo() {
         // Check if there is another video to play
+
         if (position < path.length() - 1) {
             position++;
-            playVideo(position);
+            if (videosize >position) {
+                playVideo(position);
+            }else {
+                onBackPressed();
+            }
         } else {
             // All videos in the playlist are played
             // You may choose to loop or perform any other action here
@@ -731,6 +739,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
             e.printStackTrace();
         }
     }
+
     private void checkMultiAudioTrack(MediaPlayer mediaPlayer) {
         MediaPlayer.TrackInfo[] trackInfos = mediaPlayer.getTrackInfo();
 
@@ -776,5 +785,6 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
         });
         builder.show();
     }
+
 
 }

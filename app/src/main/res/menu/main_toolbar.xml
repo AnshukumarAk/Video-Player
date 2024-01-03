@@ -2,17 +2,40 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-   <item android:id="@+id/search"
-       android:title="Search"
-       app:showAsAction="ifRoom|collapseActionView"
-       android:icon="@drawable/ic_baseline_search_24"
-       app:actionViewClass="androidx.appcompat.widget.SearchView"
-       />
 
-   <item android:id="@+id/sortby"
-       android:title="SortBy"
+   <item
+       android:id="@+id/search"
+       android:icon="@drawable/ic_baseline_search_24"
+       android:title="Search"
+       app:actionViewClass="androidx.appcompat.widget.SearchView"
+       app:showAsAction="ifRoom|collapseActionView" />
+
+   <item
+       android:id="@+id/sortby"
        android:icon="@drawable/ic_baseline_sort_24"
-       app:showAsAction="ifRoom"
-       />
+       android:title="SortBy"
+       android:visible="false"
+       app:showAsAction="ifRoom">
+
+      <menu>
+
+         <item
+             android:id="@+id/sort_by_date"
+             android:title="ByDate"
+             app:showAsAction="never"/>
+
+         <item
+             android:id="@+id/sort_by_name"
+             android:title="ByName"
+             app:showAsAction="never"/>
+
+         <item
+             android:id="@+id/sort_by_size"
+             android:title="BySize"
+             app:showAsAction="never"/>
+
+      </menu>
+
+   </item>
 
 </menu>

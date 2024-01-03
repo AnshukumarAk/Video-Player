@@ -1,6 +1,7 @@
 package com.indev.videoplayer.Activity;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -12,6 +13,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -25,6 +27,7 @@ public class SplashActivity extends AppCompatActivity {
     private int SPLASH_DISPLAY_LENGHT=3000;
 
 
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -33,19 +36,40 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         getSupportActionBar().hide();
 
-        if (Build.VERSION.SDK_INT >= 23) {
+
+        if (Build.VERSION.SDK_INT >= 23 && Build.VERSION.SDK_INT <= 32) {
+            Log.d("TAG","@@@ IN IF Build.VERSION.SDK_INT >= 23");
             String[] PERMISSIONS = {
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    Manifest.permission.READ_EXTERNAL_STORAGE,
-            };
+                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    android.Manifest.permission.READ_EXTERNAL_STORAGE};
+
             if (!hasPermissions(this, PERMISSIONS)) {
-                ActivityCompat.requestPermissions((Activity) this, PERMISSIONS, REQUEST );
+                Log.d("TAG","@@@ IN IF hasPermissions");
+                ActivityCompat.requestPermissions((Activity) this, PERMISSIONS, REQUEST);
             } else {
+                Log.d("TAG","@@@ IN ELSE hasPermissions");
                 CallNextActivity();
+
             }
-        }else {
-            CallNextActivity();
         }
+        else {
+            String[] PERMISSIONS = {
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_AUDIO};
+
+            if (!hasPermissions(this, PERMISSIONS)) {
+                Log.d("TAG","@@@ IN IF hasPermissions");
+                ActivityCompat.requestPermissions((Activity) this, PERMISSIONS, REQUEST);
+            } else {
+                Log.d("TAG","@@@ IN ELSE hasPermissions");
+                CallNextActivity();
+
+            }
+            Log.d("TAG","@@@ IN ELSE  Build.VERSION.SDK_INT >= 23");
+//            callNextActivity();
+        }
+
+
 
 
         binding.lottie.setAnimation(R.raw.video);

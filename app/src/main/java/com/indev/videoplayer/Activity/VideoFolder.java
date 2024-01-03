@@ -1,5 +1,6 @@
 package com.indev.videoplayer.Activity;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Paint;
 import android.net.Uri;
@@ -38,6 +40,8 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
     Toolbar toolbar;
     private Paint mClearPaint;
     LinearLayout parentLayout;
+    private static final String MY_SORT_PREF = "sortOrder";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,7 +103,7 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
             ArrayList<VideoModel>list=new ArrayList<>();
 
             Uri uri= MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-            String orderBy=MediaStore.Video.Media.DATE_ADDED+ " DESC ";
+            String orderBy=MediaStore.Video.Media.DISPLAY_NAME+ " ASC ";
 
             String [] projection={
                     MediaStore.Video.Media._ID,
@@ -173,6 +177,102 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
         return list;
     }
 
+     // if You Want To using sorting
+    private ArrayList<VideoModel> getallVideoFromFolder(Context context, String name) {
+        SharedPreferences preferences = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE);
+        //which one you want to set default in sorting
+        // i am setting by date
+        String sort = preferences.getString("sorting", "sortByName");
+        String order = null;
+        switch (sort) {
+
+            case "sortByDate":
+                order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
+                break;
+
+            case "sortByName":
+                order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
+                break;
+
+            case "sortBySize":
+                order = MediaStore.MediaColumns.DATE_ADDED + " DESC";
+                break;
+
+        }
+        ArrayList<VideoModel> list = new ArrayList<>();
+        Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+        String[] projection = {
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DATA,
+                MediaStore.Video.Media.TITLE,
+                MediaStore.Video.Media.SIZE,
+                MediaStore.Video.Media.HEIGHT,
+                MediaStore.Video.Media.DURATION,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.BUCKET_DISPLAY_NAME,
+                MediaStore.Video.Media.RESOLUTION
+        };
+        String selection = MediaStore.Video.Media.DATA + " like?";
+        String[] selectionArgs = new String[]{"%" + name + "%"};
+
+        Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, order);
+
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+
+                String id = cursor.getString(0);
+                String path = cursor.getString(1);
+                String title = cursor.getString(2);
+                int size = cursor.getInt(3);
+                String resolution = cursor.getString(4);
+                int duration = cursor.getInt(5);
+                String disName = cursor.getString(6);
+                String bucket_display_name = cursor.getString(7);
+                String width_height = cursor.getString(8);
+
+                //this method convert 1204 in 1MB
+                String human_can_read = null;
+                if (size < 1024) {
+                    human_can_read = String.format(context.getString(R.string.size_in_b), (double) size);
+                } else if (size < Math.pow(1024, 2)) {
+                    human_can_read = String.format(context.getString(R.string.size_in_kb), (double) (size / 1024));
+                } else if (size < Math.pow(1024, 3)) {
+                    human_can_read = String.format(context.getString(R.string.size_in_mb), size / Math.pow(1024, 2));
+                } else {
+                    human_can_read = String.format(context.getString(R.string.size_in_gb), size / Math.pow(1024, 3));
+                }
+
+                //this method convert any random video duration like 1331533132 into 1:21:12
+                String duration_formatted;
+                int sec = (duration / 1000) % 60;
+                int min = (duration / (1000 * 60)) % 60;
+                int hrs = duration / (1000 * 60 * 60);
+
+                if (hrs == 0) {
+                    duration_formatted = String.valueOf(min)
+                            .concat(":".concat(String.format(Locale.UK, "%02d", sec)));
+                } else {
+                    duration_formatted = String.valueOf(hrs)
+                            .concat(":".concat(String.format(Locale.UK, "%02d", min)
+                                    .concat(":".concat(String.format(Locale.UK, "%02d", sec)))));
+                }
+
+
+                VideoModel files = new VideoModel(id, path, title,
+                        human_can_read, resolution, duration_formatted,
+                        disName, width_height);
+                if (name.endsWith(bucket_display_name))
+                    list.add(files);
+
+            }
+            cursor.close();
+        }
+
+        return list;
+    }
+
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -205,5 +305,32 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
         }
         videoAdapter.updateSearchList(searchList);
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        SharedPreferences.Editor editor = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE).edit();
+        switch (item.getItemId()) {
+
+            case R.id.sort_by_date:
+                editor.putString("sorting", "sortByDate");
+                editor.apply();
+                this.recreate();
+                break;
+
+            case R.id.sort_by_name:
+                editor.putString("sorting", "sortByName");
+                editor.apply();
+                this.recreate();
+                break;
+
+            case R.id.sort_by_size:
+                editor.putString("sorting", "sortBySize");
+                editor.apply();
+                this.recreate();
+                break;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 }
