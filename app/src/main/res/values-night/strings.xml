@@ -9,4 +9,5 @@
     <string name="_00_00_00">00:00:00</string>
     <string name="lock">Lock</string>
     <string name="audio_sub">Audio &amp; Subtitle </string>
+    <string name="delete">Delete?</string>
 </resources>

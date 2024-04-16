@@ -145,7 +145,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
             @Override
             public void onClick(View v) {
                 bottomSheetDialog.dismiss();
-                DeleteFile(position,v);
+                DeleteFile(position);
             }
         });
 
@@ -153,7 +153,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
             @Override
             public void onClick(View v) {
                 bottomSheetDialog.dismiss();
-               RenameFileName(position,v);
+               RenameFileName(position);
             }
         });
 
@@ -161,7 +161,7 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
             @Override
             public void onClick(View v) {
                 bottomSheetDialog.dismiss();
-               ShowVideoProperties(position,v);
+               ShowVideoProperties(position);
             }
         });
 
@@ -185,80 +185,84 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
         }
     }
 
-//    private void DeleteFile(int position, View view){
-//        AlertDialog.Builder builder=new AlertDialog.Builder(context);
-//        builder.setTitle("delete?")
-//                .setMessage(videoFolder.get(position).getTitle())
-//                .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-//                    @Override
-//                    public void onClick(DialogInterface dialog, int which) {
-//                        dialog.dismiss();
-//                        bottomSheetDialog.dismiss();
-//                    }
-//                }).setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-//                    @Override
-//                    public void onClick(DialogInterface dialog, int which) {
-//
-//                        Uri contenturi= ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-//                                Long.parseLong(videoFolder.get(position).getId()));
-//
-//                        File file=new File(videoFolder.get(position).getPath());
-//
-//                        boolean deleted=file.delete();
-//
-//                        if (deleted){
-//                            context.getApplicationContext().getContentResolver().delete(contenturi,null,null);
-//
-//                            videoFolder.remove(position);
-//                            notifyItemRemoved(position);
-//                            notifyItemRangeChanged(position,videoFolder.size());
-//                            Snackbar.make(view,"File Deleted Successfully",Snackbar.LENGTH_LONG).show();
-//                            dialog.dismiss();
-//                            bottomSheetDialog.dismiss();
-//                        }else {
-//                            Snackbar.make(view,"File Deleted Failed",Snackbar.LENGTH_LONG).show();
-//                            dialog.dismiss();
-//                            bottomSheetDialog.dismiss();
-//                        }
-//
-//                    }
-//                }).show();
-//
-//              }
+    private void DeleteFile(int position) {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
+        bottomSheetDialog.setContentView(R.layout.delete_popup);
 
-     private void DeleteFile(int position, View view){
+        TextView BtnYes = bottomSheetDialog.findViewById(R.id.BtnYes);
+        TextView BtnNo = bottomSheetDialog.findViewById(R.id.BtnNo);
 
-         android.app.AlertDialog.Builder alertDialogDelete = new android.app.AlertDialog.Builder(context);
-         alertDialogDelete.setTitle("Delete");
-         alertDialogDelete.setMessage("Do you want to delete this video");
-         alertDialogDelete.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
-             @Override
-             public void onClick(DialogInterface dialog, int which) {
-                 Uri contentUri = ContentUris
-                         .withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                                 Long.parseLong(videoFolder.get(position).getId()));
-                 File file = new File(videoFolder.get(position).getPath());
-                 boolean delete = file.delete();
-                 if (delete) {
-                     context.getApplicationContext().getContentResolver().delete(contentUri, null, null);
-                     videoFolder.remove(position);
-                     Toast.makeText(context, "Video Deleted", Toast.LENGTH_SHORT).show();
-                 } else {
-                     Toast.makeText(context, "can't deleted", Toast.LENGTH_SHORT).show();
-                 }
-             }
-         });
-         alertDialogDelete.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-             @Override
-             public void onClick(DialogInterface dialog, int which) {
-                 dialog.dismiss();
-             }
-         });
-         alertDialogDelete.show();
+        // Null check for BtnYes and BtnNo TextViews
+        if (BtnYes != null && BtnNo != null) {
+            BtnYes.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // Get the video file path
+                    String videoPath = videoFolder.get(position).getPath();
 
-     }
+                    // Check if the video file path is valid
+                    if (videoPath != null && !videoPath.isEmpty()) {
+                        // Create a File object for the video
+                        File videoFile = new File(videoPath);
 
-    private void RenameFileName(int position, View v) {
+                        // Check if the file exists
+                        if (videoFile.exists()) {
+                            try {
+                                // Attempt to delete the file
+                                boolean deleted = videoFile.delete();
+
+                                // Check if the file was successfully deleted
+                                if (deleted) {
+                                    // Remove the video from the list
+                                    videoFolder.remove(position);
+                                    notifyItemRemoved(position);
+                                    notifyItemRangeChanged(position, videoFolder.size());
+                                    Toast.makeText(context, "File Deleted Successfully", Toast.LENGTH_LONG).show();
+                                } else {
+                                    // Show an error message if the file deletion failed
+                                    Toast.makeText(context, "File Deletion Failed", Toast.LENGTH_LONG).show();
+                                }
+                            } catch (SecurityException e) {
+                                // Handle security exceptions
+                                e.printStackTrace();
+                                Toast.makeText(context, "Security Exception: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            } catch (Exception e) {
+                                // Handle other exceptions
+                                e.printStackTrace();
+                                Toast.makeText(context, "Error Deleting File: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        } else {
+                            // Show an error message if the video file does not exist
+                            Toast.makeText(context, "File Not Found", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        // Show an error message if the video path is invalid
+                        Toast.makeText(context, "Invalid File Path", Toast.LENGTH_LONG).show();
+                    }
+
+                    // Dismiss the bottom sheet dialog
+                    bottomSheetDialog.dismiss();
+                }
+            });
+
+            BtnNo.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    // Dismiss the bottom sheet dialog
+                    bottomSheetDialog.dismiss();
+                }
+            });
+
+            bottomSheetDialog.show();
+        } else {
+            // Show an error message if the buttons are not found
+            Snackbar.make(bottomSheetDialog.getWindow().getDecorView(), "Null Buttons", Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+
+
+    private void RenameFileName(int position) {
         final Dialog dialog=new Dialog(context);
         dialog.setContentView(R.layout.rename_file);
         final EditText editText=dialog.findViewById(R.id.EditTitle);
@@ -316,30 +320,30 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
         dialog.show();
     }
 
-    private void ShowVideoProperties(int position, View v){
+    private void ShowVideoProperties(int position){
        BottomSheetDialog bottomSheetDialog=new BottomSheetDialog(context);
-        bottomSheetDialog.setContentView(R.layout.delete_popup);
+        bottomSheetDialog.setContentView(R.layout.show_video_properties);
 
 
-//        String name=videoFolder.get(position).getTitle();
-//        String path=videoFolder.get(position).getPath();
-//        String size=videoFolder.get(position).getSize();
-//        String duration=videoFolder.get(position).getDuration();
-//        String resolution=videoFolder.get(position).getResolution();
-//
-//
-//        TextView title_name = bottomSheetDialog.findViewById(R.id.name);
-//        TextView video_path = bottomSheetDialog.findViewById(R.id.path);
-//        TextView video_size = bottomSheetDialog.findViewById(R.id.size);
-//        TextView video_duration = bottomSheetDialog.findViewById(R.id.duration);
-//        TextView video_resolution = bottomSheetDialog.findViewById(R.id.resolution);
-//
-//
-//        title_name.setText(name);
-//        video_path.setText(path);
-//        video_size.setText(size);
-//        video_duration.setText(duration);
-//        video_resolution.setText(resolution+"p");
+        String name=videoFolder.get(position).getTitle();
+        String path=videoFolder.get(position).getPath();
+        String size=videoFolder.get(position).getSize();
+        String duration=videoFolder.get(position).getDuration();
+        String resolution=videoFolder.get(position).getResolution();
+
+
+        TextView title_name = bottomSheetDialog.findViewById(R.id.name);
+        TextView video_path = bottomSheetDialog.findViewById(R.id.path);
+        TextView video_size = bottomSheetDialog.findViewById(R.id.size);
+        TextView video_duration = bottomSheetDialog.findViewById(R.id.duration);
+        TextView video_resolution = bottomSheetDialog.findViewById(R.id.resolution);
+
+
+        title_name.setText(name);
+        video_path.setText(path);
+        video_size.setText(size);
+        video_duration.setText(duration);
+        video_resolution.setText(resolution+"p");
 
        bottomSheetDialog.show();
     }

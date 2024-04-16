@@ -42,6 +42,7 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.indev.videoplayer.R;
+import com.indev.videoplayer.Services.VideoOrientationChecker;
 
 import java.util.ArrayList;
 
@@ -216,7 +217,6 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
 
         if (path != null) {
             video_view.setVideoPath(path);
-//            videoView_endtime.setText(videoFolder.get(position).getDuration());
             video_view.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mp) {
@@ -294,6 +294,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
 
     }
 
+    @SuppressLint("NonConstantResourceId")
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.videoView_rotation:
@@ -309,7 +310,8 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
                     img_lock.setImageDrawable(getResources().getDrawable(R.drawable.lock_white));
                     img_audio_and_subtitle.setImageDrawable(getResources().getDrawable(R.drawable.audio_and_subtitle_white));
                     img_rotate_screen.setImageDrawable(getResources().getDrawable(R.drawable.rotate_white));
-
+                    hideDefaultControls();
+                    isOpen = false;
 
                 }else if (orientation == Configuration.ORIENTATION_LANDSCAPE){
                     //set in portrait
@@ -356,6 +358,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
     private void StartSeekBar() {
         // SeekBar listener to seek the video
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @SuppressLint("SetTextI18n")
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
@@ -407,6 +410,7 @@ public class VideoPlayer extends AppCompatActivity  implements View.OnTouchListe
     }
 
 
+    @SuppressLint("CutPasteId")
     private void AllIniClizeID() {
         video_view = findViewById(R.id.video_view);
         one = findViewById(R.id.videoView_one_layout);

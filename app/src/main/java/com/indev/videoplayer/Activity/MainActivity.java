@@ -19,6 +19,7 @@ import android.provider.MediaStore;
 import android.view.WindowManager;
 import android.widget.Toast;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.indev.videoplayer.Adapter.FolderAdapter;
 import com.indev.videoplayer.Model.VideoModel;
 import com.indev.videoplayer.R;
@@ -29,12 +30,13 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
 
     ActivityMainBinding binding;
-    private ArrayList<String>folderList=new ArrayList<>();
-    private ArrayList<VideoModel> videoList=new ArrayList<>();
+    private ArrayList<String> folderList = new ArrayList<>();
+    private ArrayList<VideoModel> videoList = new ArrayList<>();
     FolderAdapter folderAdapter;
     RecyclerView recyclerView;
     private static final int TIME_INTERVAL = 2000;
     private long mBackPressed;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -43,28 +45,28 @@ public class MainActivity extends AppCompatActivity {
 
         setTitle("Welcome");
 
-        recyclerView=findViewById(R.id.recycleview);
+        recyclerView = findViewById(R.id.recycleview);
 
-        videoList=FetchAllVideos(this);
-        if (folderList!=null && folderList.size()>0 && videoList!=null){
-            folderAdapter=new FolderAdapter(folderList,videoList,this);
+        videoList = FetchAllVideos(this);
+        if (folderList != null && folderList.size() > 0 && videoList != null) {
+            folderAdapter = new FolderAdapter(folderList, videoList, this);
             recyclerView.setAdapter(folderAdapter);
-            recyclerView.setLayoutManager(new LinearLayoutManager(this,RecyclerView.VERTICAL,false));
+            recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
 
-        }else {
-              Toast.makeText(this, "Can't find any videos folder", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "Can't find any videos folder", Toast.LENGTH_LONG).show();
         }
 
     }
 
 
-    private ArrayList<VideoModel>FetchAllVideos(Context context){
-        ArrayList<VideoModel>videoModelArrayList=new ArrayList<>();
+    private ArrayList<VideoModel> FetchAllVideos(Context context) {
+        ArrayList<VideoModel> videoModelArrayList = new ArrayList<>();
 
-        Uri uri= MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
-        String orderBy=MediaStore.Video.Media.DATE_ADDED+ " DESC ";
+        Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+        String orderBy = MediaStore.Video.Media.DATE_ADDED + " DESC ";
 
-        String[] projection={
+        String[] projection = {
                 MediaStore.Video.Media._ID,
                 MediaStore.Video.Media.DATA,
                 MediaStore.Video.Media.TITLE,
@@ -75,26 +77,26 @@ public class MainActivity extends AppCompatActivity {
                 MediaStore.Video.Media.RESOLUTION,
         };
 
-        Cursor cursor=context.getContentResolver().query(uri,projection,null,null,orderBy);
+        Cursor cursor = context.getContentResolver().query(uri, projection, null, null, orderBy);
 
-        if (cursor!=null){
-            while (cursor.moveToNext()){
-                String id=cursor.getString(0);
-                String path=cursor.getString(1);
-                String title=cursor.getString(2);
-                String size=cursor.getString(3);
-                String resolution=cursor.getString(4);
-                String duration=cursor.getString(5);
-                String disName=cursor.getString(6);
-                String width_height=cursor.getString(7);
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                String id = cursor.getString(0);
+                String path = cursor.getString(1);
+                String title = cursor.getString(2);
+                String size = cursor.getString(3);
+                String resolution = cursor.getString(4);
+                String duration = cursor.getString(5);
+                String disName = cursor.getString(6);
+                String width_height = cursor.getString(7);
 
-                VideoModel videoFiles=new VideoModel(id,path,title,size,resolution,duration,disName,width_height);
+                VideoModel videoFiles = new VideoModel(id, path, title, size, resolution, duration, disName, width_height);
 
-                int splashFirstIndex =path.lastIndexOf("/");
-                String  subString=path.substring(0,splashFirstIndex);
+                int splashFirstIndex = path.lastIndexOf("/");
+                String subString = path.substring(0, splashFirstIndex);
 
 
-                if (!folderList.contains(subString)){
+                if (!folderList.contains(subString)) {
                     folderList.add(subString);
                 }
                 videoModelArrayList.add(videoFiles);
@@ -104,13 +106,18 @@ public class MainActivity extends AppCompatActivity {
         }
         return videoModelArrayList;
     }
+
+
+
     @Override
     public void onBackPressed() {
         if (mBackPressed + TIME_INTERVAL > System.currentTimeMillis()) {
             super.onBackPressed();
             return;
         } else {
-            Toast.makeText(getBaseContext(), "Press Again For Exit !", Toast.LENGTH_SHORT).show(); }
-        mBackPressed = System.currentTimeMillis();
+            Snackbar.make(binding.getRoot(), "Press Again For Exit !", Snackbar.LENGTH_SHORT).show();
+            mBackPressed = System.currentTimeMillis();
+        }
     }
+
 }
