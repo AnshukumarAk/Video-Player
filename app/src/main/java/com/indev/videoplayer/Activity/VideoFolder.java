@@ -62,8 +62,10 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
 
 
 
+        ////// Letest code
+
         if (!title_name.equals("")){
-          setTitle(title_name+" videos");
+          setTitle(title_name);
         }
 
         LoadVideos();
