@@ -5,13 +5,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -78,7 +83,8 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
     }
 
     private void LoadVideos() {
-        videoModelArrayList=getAllVideoFromFolder(this,name);
+        // Honour the user's sort preference (set from the toolbar menu).
+        videoModelArrayList=getallVideoFromFolder(this,name);
         if (name!=null && videoModelArrayList.size()>0){
             videoAdapter=new VideoAdapter(videoModelArrayList,this);
 
@@ -86,8 +92,6 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
             //// if your recycle lagging then just add this line
             recyclerView.setHasFixedSize(true);
             recyclerView.setItemViewCacheSize(20);
-            recyclerView.setDrawingCacheEnabled(true);
-            recyclerView.setDrawingCacheQuality(View.DRAWING_CACHE_QUALITY_HIGH);
             recyclerView.setNestedScrollingEnabled(false);
 
             /////
@@ -95,10 +99,90 @@ public class VideoFolder extends AppCompatActivity implements SearchView.OnQuery
             recyclerView.setAdapter(videoAdapter);
             recyclerView.setLayoutManager(new LinearLayoutManager(this,RecyclerView.VERTICAL,false));
 
+            // Smooth entrance animation for the whole list.
+            recyclerView.setLayoutAnimation(
+                    android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_anim_fall_down));
+            recyclerView.scheduleLayoutAnimation();
+
+            setupSwipeToDelete();
+
         }else {
               Toast.makeText(this, "can't find any videos", Toast.LENGTH_LONG).show();
         }
 
+    }
+
+    /** Swipe a video row from right to left to delete it. */
+    private void setupSwipeToDelete() {
+        final ColorDrawable background = new ColorDrawable(Color.parseColor("#DB4437"));
+        final Drawable icon = ContextCompat.getDrawable(this, R.drawable.delete);
+        final int iconSizePx = (int) (28 * getResources().getDisplayMetrics().density);
+
+        ItemTouchHelper.SimpleCallback callback = new ItemTouchHelper.SimpleCallback(
+                0, ItemTouchHelper.LEFT) {
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh,
+                                  @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                int pos = viewHolder.getAdapterPosition();
+                if (videoAdapter != null && pos != RecyclerView.NO_POSITION) {
+                    // Snap the row back; the confirmation dialog performs the actual delete.
+                    videoAdapter.notifyItemChanged(pos);
+                    videoAdapter.showDeleteDialog(pos);
+                }
+            }
+
+            @Override
+            public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView rv,
+                                    @NonNull RecyclerView.ViewHolder vh, float dX, float dY,
+                                    int actionState, boolean isCurrentlyActive) {
+                View itemView = vh.itemView;
+                if (dX < 0) {
+                    background.setBounds(itemView.getRight() + (int) dX, itemView.getTop(),
+                            itemView.getRight(), itemView.getBottom());
+                    background.draw(c);
+
+                    if (icon != null) {
+                        int top = itemView.getTop() + (itemView.getHeight() - iconSizePx) / 2;
+                        int bottom = top + iconSizePx;
+                        int right = itemView.getRight() - iconSizePx;
+                        int left = right - iconSizePx;
+                        icon.setBounds(left, top, right, bottom);
+                        icon.setTint(Color.WHITE);
+                        icon.draw(c);
+                    }
+                }
+                super.onChildDraw(c, rv, vh, dX, dY, actionState, isCurrentlyActive);
+            }
+        };
+
+        new ItemTouchHelper(callback).attachToRecyclerView(recyclerView);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (videoAdapter == null || resultCode != RESULT_OK) return;
+        if (requestCode == VideoAdapter.DELETE_REQUEST_CODE) {
+            videoAdapter.onDeleteConfirmed();
+            reloadVideos();
+        } else if (requestCode == VideoAdapter.RENAME_REQUEST_CODE) {
+            videoAdapter.onRenameConfirmed();
+            reloadVideos();
+        }
+    }
+
+    /** Re-query MediaStore and refresh the list so it always matches the real filesystem. */
+    private void reloadVideos() {
+        videoModelArrayList = getallVideoFromFolder(this, name);
+        if (videoAdapter != null) {
+            videoAdapter.updateList(videoModelArrayList);
+        }
     }
 
     private ArrayList<VideoModel> getAllVideoFromFolder(VideoFolder videoFolder, String name) {

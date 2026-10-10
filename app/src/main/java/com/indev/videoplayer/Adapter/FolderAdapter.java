@@ -23,6 +23,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewhold
     private ArrayList<String> folderName;
     private ArrayList<VideoModel>videoModels;
     private Context context;
+    private int lastAnimatedPosition = -1;
 
     public FolderAdapter(ArrayList<String> folderName, ArrayList<VideoModel> videoModels, Context context) {
         this.folderName = folderName;
@@ -56,9 +57,11 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewhold
             }
         });
 
-
-
-
+        if (position > lastAnimatedPosition) {
+            holder.itemView.startAnimation(
+                    android.view.animation.AnimationUtils.loadAnimation(context, R.anim.item_anim_fall_down));
+            lastAnimatedPosition = position;
+        }
     }
 
     @Override

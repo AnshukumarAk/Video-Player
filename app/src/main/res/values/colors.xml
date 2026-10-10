@@ -13,4 +13,12 @@
     <color name="gray">#CCCCCC</color>
     <color name="color_red_google">#DB4437</color>
 
+    <!-- Modern palette -->
+    <color name="screen_bg">#F4F6F8</color>
+    <color name="card_bg">#FFFFFFFF</color>
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="accent">#0CB2A3</color>
+    <color name="accent_light">#E0F4F2</color>
+
 </resources>

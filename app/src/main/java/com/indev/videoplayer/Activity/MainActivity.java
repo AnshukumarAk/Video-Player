@@ -53,6 +53,11 @@ public class MainActivity extends AppCompatActivity {
             recyclerView.setAdapter(folderAdapter);
             recyclerView.setLayoutManager(new LinearLayoutManager(this, RecyclerView.VERTICAL, false));
 
+            // Smooth entrance animation for the folder list.
+            recyclerView.setLayoutAnimation(
+                    android.view.animation.AnimationUtils.loadLayoutAnimation(this, R.anim.layout_anim_fall_down));
+            recyclerView.scheduleLayoutAnimation();
+
         } else {
             Toast.makeText(this, "Can't find any videos folder", Toast.LENGTH_LONG).show();
         }

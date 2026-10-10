@@ -3,16 +3,23 @@ package com.indev.videoplayer.Adapter;
 import static android.content.ContentValues.TAG;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.PendingIntent;
+import android.app.RecoverableSecurityException;
 import android.content.ActivityNotFoundException;
+import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Gravity;
@@ -21,6 +28,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -47,6 +55,16 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
     public static ArrayList<VideoModel>videoFolder=new ArrayList<>();
     private Context context;
    BottomSheetDialog bottomSheetDialog;
+    private int lastAnimatedPosition = -1;
+    public static final int DELETE_REQUEST_CODE = 1234;
+    private int pendingDeletePosition = -1;
+    private Uri pendingDeleteUri;
+    private String pendingDeletePath;
+
+    public static final int RENAME_REQUEST_CODE = 1235;
+    private int pendingRenamePosition = -1;
+    private Uri pendingRenameUri;
+    private ContentValues pendingRenameValues;
 
     public VideoAdapter(ArrayList<VideoModel> videoFolder, Context context) {
         this.videoFolder = videoFolder;
@@ -96,7 +114,15 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
             }
         });
 
+        setAnimation(holder.itemView, position);
+    }
 
+    // Subtle fall-down + fade animation for newly bound rows only.
+    private void setAnimation(View view, int position) {
+        if (position > lastAnimatedPosition) {
+            view.startAnimation(AnimationUtils.loadAnimation(context, R.anim.item_anim_fall_down));
+            lastAnimatedPosition = position;
+        }
     }
 
 
@@ -170,7 +196,10 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
 
 
     private void Sharefile(int position) {
-        Uri uri = Uri.parse(videoFolder.get(position).getPath());
+        // Use a MediaStore content URI so sharing works on Android 7+ (no FileUriExposedException).
+        Uri uri = ContentUris.withAppendedId(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                Long.parseLong(videoFolder.get(position).getId()));
 
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("video/*");
@@ -185,139 +214,274 @@ public class VideoAdapter extends RecyclerView.Adapter<VideoAdapter.Myholder> {
         }
     }
 
+    /** Public entry point so both the menu and the swipe-to-delete gesture can trigger a delete. */
+    public void showDeleteDialog(int position) {
+        DeleteFile(position);
+    }
+
     private void DeleteFile(int position) {
+        if (position < 0 || position >= videoFolder.size()) return;
         BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context);
         bottomSheetDialog.setContentView(R.layout.delete_popup);
 
         TextView BtnYes = bottomSheetDialog.findViewById(R.id.BtnYes);
         TextView BtnNo = bottomSheetDialog.findViewById(R.id.BtnNo);
 
-        // Null check for BtnYes and BtnNo TextViews
         if (BtnYes != null && BtnNo != null) {
-            BtnYes.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    // Get the video file path
-                    String videoPath = videoFolder.get(position).getPath();
-
-                    // Check if the video file path is valid
-                    if (videoPath != null && !videoPath.isEmpty()) {
-                        // Create a File object for the video
-                        File videoFile = new File(videoPath);
-
-                        // Check if the file exists
-                        if (videoFile.exists()) {
-                            try {
-                                // Attempt to delete the file
-                                boolean deleted = videoFile.delete();
-
-                                // Check if the file was successfully deleted
-                                if (deleted) {
-                                    // Remove the video from the list
-                                    videoFolder.remove(position);
-                                    notifyItemRemoved(position);
-                                    notifyItemRangeChanged(position, videoFolder.size());
-                                    Toast.makeText(context, "File Deleted Successfully", Toast.LENGTH_LONG).show();
-                                } else {
-                                    // Show an error message if the file deletion failed
-                                    Toast.makeText(context, "File Deletion Failed", Toast.LENGTH_LONG).show();
-                                }
-                            } catch (SecurityException e) {
-                                // Handle security exceptions
-                                e.printStackTrace();
-                                Toast.makeText(context, "Security Exception: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                            } catch (Exception e) {
-                                // Handle other exceptions
-                                e.printStackTrace();
-                                Toast.makeText(context, "Error Deleting File: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                            }
-                        } else {
-                            // Show an error message if the video file does not exist
-                            Toast.makeText(context, "File Not Found", Toast.LENGTH_LONG).show();
-                        }
-                    } else {
-                        // Show an error message if the video path is invalid
-                        Toast.makeText(context, "Invalid File Path", Toast.LENGTH_LONG).show();
-                    }
-
-                    // Dismiss the bottom sheet dialog
-                    bottomSheetDialog.dismiss();
-                }
+            BtnYes.setOnClickListener(view -> {
+                performDelete(position);
+                bottomSheetDialog.dismiss();
             });
-
-            BtnNo.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    // Dismiss the bottom sheet dialog
-                    bottomSheetDialog.dismiss();
-                }
-            });
-
+            BtnNo.setOnClickListener(view -> bottomSheetDialog.dismiss());
             bottomSheetDialog.show();
         } else {
-            // Show an error message if the buttons are not found
             Snackbar.make(bottomSheetDialog.getWindow().getDecorView(), "Null Buttons", Snackbar.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Scoped-storage-safe delete.
+     *  - Android 11+ : the system shows its own confirmation dialog and deletes the file
+     *                  before returning RESULT_OK (we just drop the row in onDeleteConfirmed).
+     *  - Android 10  : a RecoverableSecurityException prompts for permission; on RESULT_OK
+     *                  we RE-RUN the delete (the grant alone does not delete the file).
+     *  - Older       : delete directly via the ContentResolver, with a raw File fallback.
+     */
+    private void performDelete(int position) {
+        String videoPath = videoFolder.get(position).getPath();
+        if (videoPath == null || videoPath.isEmpty()) {
+            Toast.makeText(context, "Invalid File Path", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        Uri uri = ContentUris.withAppendedId(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                Long.parseLong(videoFolder.get(position).getId()));
+        ContentResolver resolver = context.getContentResolver();
+
+        // Stash what we are deleting so the result callback can finish the job.
+        pendingDeletePosition = position;
+        pendingDeleteUri = uri;
+        pendingDeletePath = videoPath;
+
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ArrayList<Uri> uris = new ArrayList<>();
+                uris.add(uri);
+                PendingIntent pi = MediaStore.createDeleteRequest(resolver, uris);
+                launchDeleteRequest(pi.getIntentSender());
+            } else {
+                int rows = resolver.delete(uri, null, null);
+                if (rows > 0 || deleteRawFile(videoPath)) {
+                    removeAt(position);
+                    Toast.makeText(context, "File Deleted", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(context, "File Deletion Failed", Toast.LENGTH_LONG).show();
+                }
+                clearPending();
+            }
+        } catch (SecurityException se) {
+            // Android 10: ask the user for permission, then retry on result.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                handleRecoverableSecurity(se, position);
+            } else {
+                Toast.makeText(context, "Delete failed: " + se.getMessage(), Toast.LENGTH_LONG).show();
+                clearPending();
+            }
+        } catch (Exception e) {
+            Toast.makeText(context, "Error deleting file", Toast.LENGTH_LONG).show();
+            clearPending();
+        }
+    }
+
+    @androidx.annotation.RequiresApi(api = Build.VERSION_CODES.Q)
+    private void handleRecoverableSecurity(SecurityException se, int position) {
+        if (se instanceof RecoverableSecurityException) {
+            IntentSender sender = ((RecoverableSecurityException) se)
+                    .getUserAction().getActionIntent().getIntentSender();
+            launchDeleteRequest(sender);
+        } else {
+            Toast.makeText(context, "Delete failed: " + se.getMessage(), Toast.LENGTH_LONG).show();
+            clearPending();
+        }
+    }
+
+    private void launchDeleteRequest(IntentSender sender) {
+        try {
+            ((Activity) context).startIntentSenderForResult(
+                    sender, DELETE_REQUEST_CODE, null, 0, 0, 0);
+        } catch (IntentSender.SendIntentException e) {
+            Toast.makeText(context, "Could not start delete request", Toast.LENGTH_LONG).show();
+            clearPending();
+        }
+    }
+
+    /** Called by the hosting activity from onActivityResult after the user approves. */
+    public void onDeleteConfirmed() {
+        // On Android 10 the grant does NOT delete the file — we must run the delete now.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                && Build.VERSION.SDK_INT < Build.VERSION_CODES.R
+                && pendingDeleteUri != null) {
+            try {
+                context.getContentResolver().delete(pendingDeleteUri, null, null);
+            } catch (Exception e) {
+                deleteRawFile(pendingDeletePath);
+            }
+        }
+        Toast.makeText(context, "File Deleted", Toast.LENGTH_SHORT).show();
+        clearPending();
+        // The hosting activity reloads the list afterwards to reflect the real filesystem.
+    }
+
+    /** Replace the backing data with a fresh query result and redraw. */
+    public void updateList(ArrayList<VideoModel> newList) {
+        videoFolder = new ArrayList<>(newList);
+        lastAnimatedPosition = -1;
+        notifyDataSetChanged();
+    }
+
+    /** Last-resort physical delete (works when the app holds all-files / write access). */
+    private boolean deleteRawFile(String path) {
+        try {
+            File f = new File(path);
+            return f.exists() && f.delete();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private void clearPending() {
+        pendingDeletePosition = -1;
+        pendingDeleteUri = null;
+        pendingDeletePath = null;
+    }
+
+    private void removeAt(int position) {
+        if (position < 0 || position >= videoFolder.size()) return;
+        videoFolder.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, videoFolder.size());
     }
 
 
 
     private void RenameFileName(int position) {
-        final Dialog dialog=new Dialog(context);
+        final Dialog dialog = new Dialog(context);
         dialog.setContentView(R.layout.rename_file);
-        final EditText editText=dialog.findViewById(R.id.EditTitle);
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            dialog.getWindow().setLayout(
+                    (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9),
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        }
 
-        Button cancel=dialog.findViewById(R.id.Cancel);
-        Button rename=dialog.findViewById(R.id.Rename);
+        final EditText editText = dialog.findViewById(R.id.EditTitle);
+        Button cancel = dialog.findViewById(R.id.Cancel);
+        Button rename = dialog.findViewById(R.id.Rename);
 
-        final File renameFile=new File(videoFolder.get(position).getPath());
-        String nameText=renameFile.getName();
+        String fullName = new File(videoFolder.get(position).getPath()).getName();
+        final String ext = fullName.contains(".") ? fullName.substring(fullName.lastIndexOf(".")) : "";
+        String nameOnly = fullName.contains(".") ? fullName.substring(0, fullName.lastIndexOf(".")) : fullName;
 
-        nameText=nameText.substring(0,nameText.lastIndexOf("."));
-        editText.setText(nameText);
-        editText.clearFocus();
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE);
+        editText.setText(nameOnly);
+        editText.requestFocus();
+        editText.setSelection(editText.getText().length());
 
+        cancel.setOnClickListener(v -> dialog.dismiss());
 
-        cancel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dialog.dismiss();
+        rename.setOnClickListener(v -> {
+            String newBase = editText.getText().toString().trim();
+            if (newBase.isEmpty()) {
+                editText.setError("Name can't be empty");
+                return;
             }
-        });
-
-        rename.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String onlyPath=renameFile.getParentFile().getAbsolutePath();
-                String ext=renameFile.getAbsolutePath();
-
-                ext=ext.substring(ext.lastIndexOf("."));
-
-                String newPath=onlyPath + "/" + editText.getText() + ext;
-                File newFile=new File(newPath);
-
-                boolean rename=renameFile.renameTo(newFile);
-
-                if (rename){
-                    context.getApplicationContext().getContentResolver()
-                            .delete(MediaStore.Files.getContentUri("external"),
-                            MediaStore.MediaColumns.DATA + "=?",
-                    new String[]{renameFile.getAbsolutePath()});
-
-                    Intent intent=new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                    intent.setData(Uri.fromFile(newFile));
-                    context.getApplicationContext().sendBroadcast(intent);
-                    Snackbar.make(v,"Rename Successfully",Snackbar.LENGTH_LONG).show();
-
-
-                }else {
-                    Snackbar.make(v,"Rename Failed",Snackbar.LENGTH_LONG).show();
-                }
-            }
+            performRename(position, newBase + ext);
+            dialog.dismiss();
         });
 
         dialog.show();
+    }
+
+    /**
+     * Scoped-storage-safe rename via MediaStore DISPLAY_NAME.
+     *  - Android 11+ : request write consent, then update on RESULT_OK.
+     *  - Android 10  : update throws RecoverableSecurityException -> prompt -> retry.
+     *  - Older       : direct ContentResolver update.
+     */
+    private void performRename(int position, String newDisplayName) {
+        Uri uri = ContentUris.withAppendedId(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                Long.parseLong(videoFolder.get(position).getId()));
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, newDisplayName);
+
+        pendingRenamePosition = position;
+        pendingRenameUri = uri;
+        pendingRenameValues = values;
+
+        ContentResolver resolver = context.getContentResolver();
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                ArrayList<Uri> uris = new ArrayList<>();
+                uris.add(uri);
+                PendingIntent pi = MediaStore.createWriteRequest(resolver, uris);
+                ((Activity) context).startIntentSenderForResult(
+                        pi.getIntentSender(), RENAME_REQUEST_CODE, null, 0, 0, 0);
+            } else {
+                int rows = resolver.update(uri, values, null, null);
+                Toast.makeText(context, rows > 0 ? "Renamed" : "Rename failed",
+                        Toast.LENGTH_SHORT).show();
+                clearPendingRename();
+            }
+        } catch (SecurityException se) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                handleRecoverableRename(se);
+            } else {
+                Toast.makeText(context, "Rename failed: " + se.getMessage(), Toast.LENGTH_LONG).show();
+                clearPendingRename();
+            }
+        } catch (Exception e) {
+            Toast.makeText(context, "Error renaming file", Toast.LENGTH_LONG).show();
+            clearPendingRename();
+        }
+    }
+
+    @androidx.annotation.RequiresApi(api = Build.VERSION_CODES.Q)
+    private void handleRecoverableRename(SecurityException se) {
+        if (se instanceof RecoverableSecurityException) {
+            IntentSender sender = ((RecoverableSecurityException) se)
+                    .getUserAction().getActionIntent().getIntentSender();
+            try {
+                ((Activity) context).startIntentSenderForResult(
+                        sender, RENAME_REQUEST_CODE, null, 0, 0, 0);
+            } catch (IntentSender.SendIntentException e) {
+                Toast.makeText(context, "Could not start rename request", Toast.LENGTH_LONG).show();
+                clearPendingRename();
+            }
+        } else {
+            Toast.makeText(context, "Rename failed: " + se.getMessage(), Toast.LENGTH_LONG).show();
+            clearPendingRename();
+        }
+    }
+
+    /** Called by the hosting activity from onActivityResult after write consent is granted. */
+    public void onRenameConfirmed() {
+        if (pendingRenameUri != null && pendingRenameValues != null) {
+            try {
+                int rows = context.getContentResolver().update(pendingRenameUri, pendingRenameValues, null, null);
+                Toast.makeText(context, rows > 0 ? "Renamed" : "Rename failed", Toast.LENGTH_SHORT).show();
+            } catch (Exception e) {
+                Toast.makeText(context, "Rename failed", Toast.LENGTH_LONG).show();
+            }
+        }
+        clearPendingRename();
+    }
+
+    private void clearPendingRename() {
+        pendingRenamePosition = -1;
+        pendingRenameUri = null;
+        pendingRenameValues = null;
     }
 
     private void ShowVideoProperties(int position){
